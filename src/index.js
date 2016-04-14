@@ -1,9 +1,9 @@
 var url = require('./util/url');
-var store = require('./store/locationStore');
+var storage = require('./store/storage');
 var cookie = require('./store/cookie');
 
 module.exports = {
-    url:url,
-    store:store,
-    cookie:cookie
+    'url':url,
+    'storage':storage,
+    'cookie':cookie
 }

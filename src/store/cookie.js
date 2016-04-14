@@ -1,81 +1,144 @@
-/**
- * @time 2012年10月26日
- * @author icepy
- * @info 完成cookie模块
+/*
+    引用`https://github.com/js-cookie/js-cookie` 2.1.0
  */
 
 'use strict';
 
-(function(factory) {
-	var root = (typeof self == 'object' && self.self == self && self) ||
+(function (factory) {
+    var root = (typeof self == 'object' && self.self == self && self) ||
 		(typeof global == 'object' && global.global == global && global);
-	if(typeof exports === 'object' && typeof module === 'object'){
+    if(typeof exports === 'object' && typeof module === 'object'){
 		module.exports = factory();
 	}else if(typeof exports === 'object'){
 		exports['cookie'] = factory()
 	}else{
-		if (!root.ICEPlugs) {
+        if (!root.ICEPlugs) {
 			root.ICEPlugs = {};
 		};
 		root.ICEPlugs.cookie = factory();
-	};
-})(function() {
-	return {
-		/**
-		 * [get 获取cookie]
-		 * @param  {[String]} name [description]
-		 */
-		get: function(name) {
-			var cookieName = encodeURIComponent(name) + '=';
-			var cookieStart = document.cookie.indexOf(cookieName);
-			var cookieValue = null;
-			var cookieEnd;
-			if (cookieStart > -1) {
-				cookieEnd = document.cookie.indexOf(';', cookieStart);
-				if (cookieEnd == -1) {
-					cookieEnd = document.cookie.length;
+	}
+}(function () {
+	function extend () {
+		var i = 0;
+		var result = {};
+		for (; i < arguments.length; i++) {
+			var attributes = arguments[ i ];
+			for (var key in attributes) {
+				result[key] = attributes[key];
+			}
+		}
+		return result;
+	}
+
+	function init (converter) {
+		function api (key, value, attributes) {
+			var result;
+
+			// Write
+
+			if (arguments.length > 1) {
+				attributes = extend({
+					path: '/'
+				}, api.defaults, attributes);
+
+				if (typeof attributes.expires === 'number') {
+					var expires = new Date();
+					expires.setMilliseconds(expires.getMilliseconds() + attributes.expires * 864e+5);
+					attributes.expires = expires;
 				}
-				cookieValue = decodeURIComponent(document.cookie.substring(cookieStart +
-					cookieName.length, cookieEnd));
+
+				try {
+					result = JSON.stringify(value);
+					if (/^[\{\[]/.test(result)) {
+						value = result;
+					}
+				} catch (e) {}
+
+				if (!converter.write) {
+					value = encodeURIComponent(String(value))
+						.replace(/%(23|24|26|2B|3A|3C|3E|3D|2F|3F|40|5B|5D|5E|60|7B|7D|7C)/g, decodeURIComponent);
+				} else {
+					value = converter.write(value, key);
+				}
+
+				key = encodeURIComponent(String(key));
+				key = key.replace(/%(23|24|26|2B|5E|60|7C)/g, decodeURIComponent);
+				key = key.replace(/[\(\)]/g, escape);
+
+				return (document.cookie = [
+					key, '=', value,
+					attributes.expires && '; expires=' + attributes.expires.toUTCString(), // use expires attribute, max-age is not supported by IE
+					attributes.path    && '; path=' + attributes.path,
+					attributes.domain  && '; domain=' + attributes.domain,
+					attributes.secure ? '; secure' : ''
+				].join(''));
 			}
-			return cookieValue;
-		},
-		/**
-		 * [set 设置cookie]
-		 * @param {[type]} name    [description]
-		 * @param {[type]} value   [description]
-		 * @param {[type]} expires [description]
-		 * @param {[type]} path    [description]
-		 * @param {[type]} domain  [description]
-		 * @param {[type]} secure  [description]
-		 */
-		set: function(name, value, expires, path, domain, secure) {
-			var cookieText = encodeURIComponent(name) + '=' +
-				encodeURIComponent(value);
-			if (expires instanceof Date) {
-				cookieText += '; expires=' + expires.toUTCString();
+
+			// Read
+
+			if (!key) {
+				result = {};
 			}
-			if (path) {
-				cookieText += '; path=' + path;
+
+			// To prevent the for loop in the first place assign an empty array
+			// in case there are no cookies at all. Also prevents odd result when
+			// calling "get()"
+			var cookies = document.cookie ? document.cookie.split('; ') : [];
+			var rdecode = /(%[0-9A-Z]{2})+/g;
+			var i = 0;
+
+			for (; i < cookies.length; i++) {
+				var parts = cookies[i].split('=');
+				var name = parts[0].replace(rdecode, decodeURIComponent);
+				var cookie = parts.slice(1).join('=');
+
+				if (cookie.charAt(0) === '"') {
+					cookie = cookie.slice(1, -1);
+				}
+
+				try {
+					cookie = converter.read ?
+						converter.read(cookie, name) : converter(cookie, name) ||
+						cookie.replace(rdecode, decodeURIComponent);
+
+					if (this.json) {
+						try {
+							cookie = JSON.parse(cookie);
+						} catch (e) {}
+					}
+
+					if (key === name) {
+						result = cookie;
+						break;
+					}
+
+					if (!key) {
+						result[name] = cookie;
+					}
+				} catch (e) {}
 			}
-			if (domain) {
-				cookieText += '; domain=' + domain;
-			}
-			if (secure) {
-				cookieText += '; secure';
-			}
-			document.cookie = cookieText;
-		},
-		/**
-		 * [unset 删除cookie]
-		 * @param  {[type]} name   [description]
-		 * @param  {[type]} path   [description]
-		 * @param  {[type]} domain [description]
-		 * @param  {[type]} secure [description]
-		 */
-		unset: function(name, path, domain, secure) {
-			this.set(name, '', new Date(0), path, domain, secure);
-		},
-		version: '0.0.1'
-	};
-});
+
+			return result;
+		}
+
+		api.get = api.set = api;
+		api.getJSON = function () {
+			return api.apply({
+				json: true
+			}, [].slice.call(arguments));
+		};
+		api.defaults = {};
+
+		api.remove = function (key, attributes) {
+			api(key, '', extend(attributes, {
+				expires: -1
+			}));
+		};
+
+		api.withConverter = init;
+
+		return api;
+	}
+
+	return init(function () {});
+}));
