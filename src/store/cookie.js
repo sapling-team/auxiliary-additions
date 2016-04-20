@@ -4,141 +4,126 @@
 
 'use strict';
 
-(function (factory) {
-    var root = (typeof self == 'object' && self.self == self && self) ||
-		(typeof global == 'object' && global.global == global && global);
-    if(typeof exports === 'object' && typeof module === 'object'){
-		module.exports = factory();
-	}else if(typeof exports === 'object'){
-		exports['cookie'] = factory()
-	}else{
-        if (!root.ICEPlugs) {
-			root.ICEPlugs = {};
-		};
-		root.ICEPlugs.cookie = factory();
-	}
-}(function () {
-	function extend () {
-		var i = 0;
-		var result = {};
-		for (; i < arguments.length; i++) {
-			var attributes = arguments[ i ];
-			for (var key in attributes) {
-				result[key] = attributes[key];
-			}
-		}
-		return result;
-	}
+module.exports = init(function () {});
 
-	function init (converter) {
-		function api (key, value, attributes) {
-			var result;
+function extend () {
+  var i = 0;
+  var result = {};
+  for (; i < arguments.length; i++) {
+    var attributes = arguments[ i ];
+    for (var key in attributes) {
+      result[key] = attributes[key];
+    }
+  }
+  return result;
+}
 
-			// Write
+function init (converter) {
+  function api (key, value, attributes) {
+    var result;
 
-			if (arguments.length > 1) {
-				attributes = extend({
-					path: '/'
-				}, api.defaults, attributes);
+    // Write
 
-				if (typeof attributes.expires === 'number') {
-					var expires = new Date();
-					expires.setMilliseconds(expires.getMilliseconds() + attributes.expires * 864e+5);
-					attributes.expires = expires;
-				}
+    if (arguments.length > 1) {
+      attributes = extend({
+        path: '/'
+      }, api.defaults, attributes);
 
-				try {
-					result = JSON.stringify(value);
-					if (/^[\{\[]/.test(result)) {
-						value = result;
-					}
-				} catch (e) {}
+      if (typeof attributes.expires === 'number') {
+        var expires = new Date();
+        expires.setMilliseconds(expires.getMilliseconds() + attributes.expires * 864e+5);
+        attributes.expires = expires;
+      }
 
-				if (!converter.write) {
-					value = encodeURIComponent(String(value))
-						.replace(/%(23|24|26|2B|3A|3C|3E|3D|2F|3F|40|5B|5D|5E|60|7B|7D|7C)/g, decodeURIComponent);
-				} else {
-					value = converter.write(value, key);
-				}
+      try {
+        result = JSON.stringify(value);
+        if (/^[\{\[]/.test(result)) {
+          value = result;
+        }
+      } catch (e) {}
 
-				key = encodeURIComponent(String(key));
-				key = key.replace(/%(23|24|26|2B|5E|60|7C)/g, decodeURIComponent);
-				key = key.replace(/[\(\)]/g, escape);
+      if (!converter.write) {
+        value = encodeURIComponent(String(value))
+          .replace(/%(23|24|26|2B|3A|3C|3E|3D|2F|3F|40|5B|5D|5E|60|7B|7D|7C)/g, decodeURIComponent);
+      } else {
+        value = converter.write(value, key);
+      }
 
-				return (document.cookie = [
-					key, '=', value,
-					attributes.expires && '; expires=' + attributes.expires.toUTCString(), // use expires attribute, max-age is not supported by IE
-					attributes.path    && '; path=' + attributes.path,
-					attributes.domain  && '; domain=' + attributes.domain,
-					attributes.secure ? '; secure' : ''
-				].join(''));
-			}
+      key = encodeURIComponent(String(key));
+      key = key.replace(/%(23|24|26|2B|5E|60|7C)/g, decodeURIComponent);
+      key = key.replace(/[\(\)]/g, escape);
 
-			// Read
+      return (document.cookie = [
+        key, '=', value,
+        attributes.expires && '; expires=' + attributes.expires.toUTCString(), // use expires attribute, max-age is not supported by IE
+        attributes.path    && '; path=' + attributes.path,
+        attributes.domain  && '; domain=' + attributes.domain,
+        attributes.secure ? '; secure' : ''
+      ].join(''));
+    }
 
-			if (!key) {
-				result = {};
-			}
+    // Read
 
-			// To prevent the for loop in the first place assign an empty array
-			// in case there are no cookies at all. Also prevents odd result when
-			// calling "get()"
-			var cookies = document.cookie ? document.cookie.split('; ') : [];
-			var rdecode = /(%[0-9A-Z]{2})+/g;
-			var i = 0;
+    if (!key) {
+      result = {};
+    }
 
-			for (; i < cookies.length; i++) {
-				var parts = cookies[i].split('=');
-				var name = parts[0].replace(rdecode, decodeURIComponent);
-				var cookie = parts.slice(1).join('=');
+    // To prevent the for loop in the first place assign an empty array
+    // in case there are no cookies at all. Also prevents odd result when
+    // calling "get()"
+    var cookies = document.cookie ? document.cookie.split('; ') : [];
+    var rdecode = /(%[0-9A-Z]{2})+/g;
+    var i = 0;
 
-				if (cookie.charAt(0) === '"') {
-					cookie = cookie.slice(1, -1);
-				}
+    for (; i < cookies.length; i++) {
+      var parts = cookies[i].split('=');
+      var name = parts[0].replace(rdecode, decodeURIComponent);
+      var cookie = parts.slice(1).join('=');
 
-				try {
-					cookie = converter.read ?
-						converter.read(cookie, name) : converter(cookie, name) ||
-						cookie.replace(rdecode, decodeURIComponent);
+      if (cookie.charAt(0) === '"') {
+        cookie = cookie.slice(1, -1);
+      }
 
-					if (this.json) {
-						try {
-							cookie = JSON.parse(cookie);
-						} catch (e) {}
-					}
+      try {
+        cookie = converter.read ?
+          converter.read(cookie, name) : converter(cookie, name) ||
+          cookie.replace(rdecode, decodeURIComponent);
 
-					if (key === name) {
-						result = cookie;
-						break;
-					}
+        if (this.json) {
+          try {
+            cookie = JSON.parse(cookie);
+          } catch (e) {}
+        }
 
-					if (!key) {
-						result[name] = cookie;
-					}
-				} catch (e) {}
-			}
+        if (key === name) {
+          result = cookie;
+          break;
+        }
 
-			return result;
-		}
+        if (!key) {
+          result[name] = cookie;
+        }
+      } catch (e) {}
+    }
 
-		api.get = api.set = api;
-		api.getJSON = function () {
-			return api.apply({
-				json: true
-			}, [].slice.call(arguments));
-		};
-		api.defaults = {};
+    return result;
+  }
 
-		api.remove = function (key, attributes) {
-			api(key, '', extend(attributes, {
-				expires: -1
-			}));
-		};
+  api.get = api.set = api;
+  api.getJSON = function () {
+    return api.apply({
+      json: true
+    }, [].slice.call(arguments));
+  };
+  api.defaults = {};
 
-		api.withConverter = init;
+  api.remove = function (key, attributes) {
+    api(key, '', extend(attributes, {
+      expires: -1
+    }));
+  };
 
-		return api;
-	}
+  api.withConverter = init;
 
-	return init(function () {});
-}));
+  return api;
+};

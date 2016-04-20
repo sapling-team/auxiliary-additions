@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+  </head>
+  <body>
+    <script src="//upcdn.b0.upaiyun.com/libs/jquery/jquery-2.0.3.min.js" charset="utf-8"></script>
+    <script src="./build/auxiliary.js" charset="utf-8"></script>
+
+    <!--AjaxForm-->
+    <div>
+      <div>
+        <form id="ajaxForm" />
+        <button id="uploadSubmit">上传</button>
+      </div>
+      <script type="text/javascript">
+        $(function(){
+          var UploadFile = window.Auxiliary.UploadFile;
+          var ctrlData = {
+      			"cmd":[
+      				{"saveOriginal" : 1, "op" : "save", "plan" : "avatar", "belongId" :"20634338","srcImg":"img"}
+      			],
+      			"redirect":window.location.origin+"/web/upload.html"
+      		};
+          var uploadFile = new UploadFile({
+            el: $('#ajaxForm'),
+            url:'http://image.yinyuetai.com/edit',
+			      data:ctrlData,
+			      filename:'img',
+			      className:'file',
+          });
+          console.log(uploadFile);
+
+          uploadFile.done(function(r){
+            console.log(r);
+          });
+          uploadFile.fail(function(e){
+            console.log(e);
+          });
+
+          $('#uploadSubmit').on('click',function(){
+            uploadFile.submit();
+          });
+        });
+      </script>
+    </div>
+  </body>
+</html>
