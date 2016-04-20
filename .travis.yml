@@ -1,5 +1,5 @@
 language: node_js
-sudo: false 
+sudo: false
 node_js:
   - '4.1.1'
 cache:
@@ -9,7 +9,6 @@ before_install:
     - npm install
 script:
   - npm test
-  - npm run dev
-  - npm run build
+  - npm run release
 notifications:
   slack: yytspace:mAvt46hmfFsPbipu3auvoUH3
