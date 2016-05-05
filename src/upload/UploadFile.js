@@ -23,20 +23,6 @@ var UploadFile = function(options){
 		return;
 	};
 	this._init();
-	var defer = $.Deferred();
-	$.extend(this,defer.promise());
-	this.ajaxForm = AjaxForm.classInstanceAjaxForm(this.$el,{
-		type:'img'
-	});
-	this.ajaxForm.done(function(cw){
-		var loc = cw.location;
-		var search = decodeURIComponent(loc.search);
-		var query = url.parseSearch(search);
-		defer.resolve(query);
-	});
-	this.ajaxForm.fail(function(){
-		defer.reject(this);
-	});
 };
 
 UploadFile.prototype._init = function(){
@@ -84,7 +70,21 @@ UploadFile.prototype.submit = function(){
 	if (typeof this._before === 'function' ) {
 		this._before();
 	};
+	var defer = $.Deferred();
+	this.ajaxForm = AjaxForm.classInstanceAjaxForm(this.$el,{
+		type:'img'
+	});
+	this.ajaxForm.done(function(cw){
+		var loc = cw.location;
+		var search = decodeURIComponent(loc.search);
+		var query = url.parseSearch(search);
+		defer.resolve(query);
+	});
+	this.ajaxForm.fail(function(){
+		defer.reject(this);
+	});
 	this.$el.submit();
+	return defer.promise();
 };
 
 var shared = null;

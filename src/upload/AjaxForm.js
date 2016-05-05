@@ -29,11 +29,6 @@ AjaxForm.prototype._createIframe = function(){
 	this.$el.attr('target',this.uid);
 	this.$el.append(iframeHTML);
 	this._iframe = $('#'+this.uid);
-	$('<input />').attr({
-		type : 'hidden',
-		name : 'cross_post',
-		value : '1'
-	}).appendTo(this.$el);
 };
 
 AjaxForm.prototype._addEvent = function(promise){
